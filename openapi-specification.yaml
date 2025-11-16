@@ -1,0 +1,2302 @@
+openapi: 3.1.0
+info:
+  title: ProcGrid B2B E-commerce Platform API
+  description: |
+    Production-grade B2B e-commerce platform for producer-buyer agricultural product trading.
+    
+    ## Authentication
+    All protected endpoints require JWT Bearer token obtained from Keycloak authentication server.
+    
+    ## Rate Limiting
+    - Public endpoints: 100 requests/minute
+    - Authenticated endpoints: 1000 requests/minute
+    
+    ## Error Handling
+    All errors follow RFC 7807 Problem Details for HTTP APIs standard.
+  version: 1.0.0
+  contact:
+    name: ProcGrid API Support
+    email: api-support@procgrid.com
+    url: https://procgrid.com/support
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: https://procgrid.com/terms
+
+servers:
+  - url: https://api.procgrid.com/v1
+    description: Production server
+  - url: https://staging-api.procgrid.com/v1
+    description: Staging server
+  - url: http://localhost:8080/api/v1
+    description: Local development server
+
+security:
+  - bearerAuth: []
+
+paths:
+  # ============ AUTH & USER REGISTRATION ============
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: User login
+      description: Authenticate user with email and password via Keycloak
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            examples:
+              producer_login:
+                summary: Producer login
+                value:
+                  email: "farmer@example.com"
+                  password: "securePassword123"
+                  rememberMe: false
+              buyer_login:
+                summary: Buyer login
+                value:
+                  email: "buyer@agrimart.com"
+                  password: "buyerPass456"
+                  rememberMe: true
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                success:
+                  value:
+                    success: true
+                    message: "Login successful"
+                    data:
+                      accessToken: "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
+                      refreshToken: "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
+                      tokenType: "Bearer"
+                      expiresIn: 3600
+                      userId: "12345"
+                      email: "farmer@example.com"
+                      firstName: "John"
+                      lastName: "Farmer"
+                      roles: ["PRODUCER"]
+                      issuedAt: "2025-11-15T10:30:00Z"
+                    timestamp: "2025-11-15T10:30:00Z"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: User logout
+      description: Logout user and invalidate session
+      parameters:
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+          example: "12345"
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /auth/refresh-token:
+    post:
+      tags:
+        - Authentication
+      summary: Refresh access token
+      description: Refresh access token using refresh token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refreshToken
+              properties:
+                refreshToken:
+                  type: string
+                  description: Valid refresh token
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /register/producer:
+    post:
+      tags:
+        - User Registration
+      summary: Register producer/farmer
+      description: Register new producer with farm details
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProducerRegistrationRequest'
+      responses:
+        '201':
+          description: Producer registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /register/buyer:
+    post:
+      tags:
+        - User Registration
+      summary: Register buyer/merchant
+      description: Register new buyer with business details
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BuyerRegistrationRequest'
+      responses:
+        '201':
+          description: Buyer registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /verify/otp:
+    post:
+      tags:
+        - User Registration
+      summary: Verify OTP
+      description: Verify OTP sent to user's phone/email
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OtpVerificationRequest'
+      responses:
+        '200':
+          description: OTP verified successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+
+  /users/{id}:
+    get:
+      tags:
+        - User Management
+      summary: Get user profile
+      description: Retrieve user profile details
+      parameters:
+        - $ref: '#/components/parameters/UserIdPath'
+      responses:
+        '200':
+          description: User profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/UserProfile'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+    patch:
+      tags:
+        - User Management
+      summary: Update user profile
+      description: Update user profile information
+      parameters:
+        - $ref: '#/components/parameters/UserIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdateRequest'
+      responses:
+        '200':
+          description: User profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /users/{id}/kyc:
+    post:
+      tags:
+        - User Management
+      summary: Submit KYC documents
+      description: Submit Know Your Customer documents for verification
+      parameters:
+        - $ref: '#/components/parameters/UserIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KycSubmissionRequest'
+      responses:
+        '201':
+          description: KYC documents submitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /users/{id}/documents:
+    post:
+      tags:
+        - User Management
+      summary: Upload user documents
+      description: Upload supporting documents (images, PDFs)
+      parameters:
+        - $ref: '#/components/parameters/UserIdPath'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - files
+                - documentType
+              properties:
+                files:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                documentType:
+                  $ref: '#/components/schemas/DocumentType'
+                description:
+                  type: string
+                  maxLength: 500
+      responses:
+        '201':
+          description: Documents uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '413':
+          description: File too large
+        '415':
+          description: Unsupported media type
+
+  # ============ PRODUCT & INVENTORY ============
+  /products:
+    post:
+      tags:
+        - Product Management
+      summary: Create product lot
+      description: Create new product lot (Producer only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductCreateRequest'
+      responses:
+        '201':
+          description: Product lot created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Product'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+    get:
+      tags:
+        - Product Management
+      summary: List products
+      description: Get paginated list of product lots
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+        - $ref: '#/components/parameters/SortByParam'
+        - $ref: '#/components/parameters/SortDirectionParam'
+        - name: category
+          in: query
+          schema:
+            type: string
+          description: Filter by category name
+        - name: location
+          in: query
+          schema:
+            type: string
+          description: Filter by location
+        - name: minPrice
+          in: query
+          schema:
+            type: number
+            format: double
+          description: Minimum price filter
+        - name: maxPrice
+          in: query
+          schema:
+            type: number
+            format: double
+          description: Maximum price filter
+      responses:
+        '200':
+          description: Products retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ProductPageResponse'
+
+  /products/{id}:
+    get:
+      tags:
+        - Product Management
+      summary: Get product details
+      description: Retrieve detailed product information
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "prod_12345"
+      responses:
+        '200':
+          description: Product details retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Product'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+    patch:
+      tags:
+        - Product Management
+      summary: Update product
+      description: Update product information (Producer only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductUpdateRequest'
+      responses:
+        '200':
+          description: Product updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /products/{id}/images:
+    post:
+      tags:
+        - Product Management
+      summary: Upload product images
+      description: Upload product images (Producer only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - images
+              properties:
+                images:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                  maxItems: 10
+      responses:
+        '201':
+          description: Images uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /categories:
+    get:
+      tags:
+        - Product Management
+      summary: List product categories
+      description: Get all available product categories
+      security: []
+      responses:
+        '200':
+          description: Categories retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Category'
+
+  /products/search:
+    get:
+      tags:
+        - Product Management
+      summary: Search products
+      description: Advanced product search with filters
+      parameters:
+        - name: q
+          in: query
+          schema:
+            type: string
+          description: Search query
+        - name: category
+          in: query
+          schema:
+            type: string
+          description: Category filter
+        - name: priceRange
+          in: query
+          schema:
+            type: string
+            pattern: '^\\d+(-\\d+)?$'
+          description: Price range (e.g., "100-500")
+        - name: location
+          in: query
+          schema:
+            type: string
+          description: Location filter
+        - name: qualityGrade
+          in: query
+          schema:
+            $ref: '#/components/schemas/QualityGrade'
+          description: Quality grade filter
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        '200':
+          description: Search results retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ProductPageResponse'
+
+  # ============ RFQ / QUOTE SERVICE ============
+  /quotes/requests:
+    post:
+      tags:
+        - Quote Management
+      summary: Create quote request
+      description: Create new RFQ (Buyer only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuoteRequestCreate'
+      responses:
+        '201':
+          description: Quote request created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/QuoteRequest'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /quotes/requests/{id}:
+    get:
+      tags:
+        - Quote Management
+      summary: Get quote request details
+      description: Retrieve quote request information
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "qr_12345"
+      responses:
+        '200':
+          description: Quote request retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/QuoteRequest'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /quotes/responses:
+    post:
+      tags:
+        - Quote Management
+      summary: Submit quote response
+      description: Submit response to quote request (Producer only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuoteResponseCreate'
+      responses:
+        '201':
+          description: Quote response submitted successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/QuoteResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /quotes/responses/{id}:
+    get:
+      tags:
+        - Quote Management
+      summary: Get quote response details
+      description: Retrieve quote response information
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Quote response retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/QuoteResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /quotes/requests/{id}/accept:
+    post:
+      tags:
+        - Quote Management
+      summary: Accept quote request
+      description: Accept a specific quote response (Buyer only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - quoteResponseId
+              properties:
+                quoteResponseId:
+                  type: string
+                  description: ID of the quote response to accept
+      responses:
+        '200':
+          description: Quote accepted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+
+  /quotes/requests/{id}/reject:
+    post:
+      tags:
+        - Quote Management
+      summary: Reject quote request
+      description: Reject quote request (Buyer only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  maxLength: 500
+      responses:
+        '200':
+          description: Quote rejected successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  # ============ ORDER SERVICE ============
+  /orders:
+    post:
+      tags:
+        - Order Management
+      summary: Create order
+      description: Create new order from accepted quote
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderCreateRequest'
+      responses:
+        '201':
+          description: Order created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Order'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+    get:
+      tags:
+        - Order Management
+      summary: List orders
+      description: Get user's orders with pagination
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/OrderStatus'
+          description: Filter by order status
+      responses:
+        '200':
+          description: Orders retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/OrderPageResponse'
+
+  /orders/{id}:
+    get:
+      tags:
+        - Order Management
+      summary: Get order details
+      description: Retrieve detailed order information
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "order_12345"
+      responses:
+        '200':
+          description: Order details retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Order'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /orders/{id}/status:
+    patch:
+      tags:
+        - Order Management
+      summary: Update order status
+      description: Update order status (authorized users only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderStatusUpdate'
+      responses:
+        '200':
+          description: Order status updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+
+  /orders/{id}/confirm:
+    post:
+      tags:
+        - Order Management
+      summary: Confirm order
+      description: Confirm order for processing
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Order confirmed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+
+  /orders/{id}/cancel:
+    post:
+      tags:
+        - Order Management
+      summary: Cancel order
+      description: Cancel order (if cancellation is allowed)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  maxLength: 500
+                  description: Cancellation reason
+      responses:
+        '200':
+          description: Order cancelled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+
+  /orders/{id}/delivery-update:
+    post:
+      tags:
+        - Order Management
+      summary: Update delivery status
+      description: Update order delivery information
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeliveryUpdateRequest'
+      responses:
+        '200':
+          description: Delivery status updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  # ============ PAYMENT & ESCROW ============
+  /payments/escrow:
+    post:
+      tags:
+        - Payment Management
+      summary: Create escrow payment
+      description: Create escrow account for order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EscrowCreateRequest'
+      responses:
+        '201':
+          description: Escrow created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/EscrowAccount'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /payments/{id}:
+    get:
+      tags:
+        - Payment Management
+      summary: Get payment details
+      description: Retrieve payment information
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "pay_12345"
+      responses:
+        '200':
+          description: Payment details retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Payment'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /payments/{id}/release:
+    post:
+      tags:
+        - Payment Management
+      summary: Release escrow funds
+      description: Release funds from escrow to producer
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                releaseAmount:
+                  type: number
+                  format: double
+                  description: Partial amount to release (optional, defaults to full amount)
+                notes:
+                  type: string
+                  maxLength: 500
+      responses:
+        '200':
+          description: Funds released successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+
+  /payments/{id}/refund:
+    post:
+      tags:
+        - Payment Management
+      summary: Refund escrow funds
+      description: Refund funds from escrow to buyer
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refundAmount:
+                  type: number
+                  format: double
+                  description: Partial amount to refund (optional, defaults to full amount)
+                reason:
+                  type: string
+                  maxLength: 500
+                  description: Refund reason
+      responses:
+        '200':
+          description: Funds refunded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+
+  /escrow/accounts/{orderId}:
+    get:
+      tags:
+        - Payment Management
+      summary: Get escrow account details
+      description: Retrieve escrow account information for order
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "order_12345"
+      responses:
+        '200':
+          description: Escrow account retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/EscrowAccount'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from Keycloak authentication
+
+  parameters:
+    UserIdPath:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+      example: "user_12345"
+
+    PageParam:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+      description: Page number (0-based)
+
+    SizeParam:
+      name: size
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+      description: Number of items per page
+
+    SortByParam:
+      name: sortBy
+      in: query
+      schema:
+        type: string
+        default: "id"
+      description: Field to sort by
+
+    SortDirectionParam:
+      name: sortDirection
+      in: query
+      schema:
+        type: string
+        enum: [ASC, DESC]
+        default: "ASC"
+      description: Sort direction
+
+  schemas:
+    # ============ COMMON SCHEMAS ============
+    ApiResponse:
+      type: object
+      required:
+        - success
+        - message
+        - timestamp
+      properties:
+        success:
+          type: boolean
+          description: Indicates if the request was successful
+        message:
+          type: string
+          description: Human-readable message
+        errorCode:
+          type: string
+          description: Error code for failed requests
+          nullable: true
+        data:
+          description: Response data
+          nullable: true
+        timestamp:
+          type: string
+          format: date-time
+          description: Response timestamp
+
+    ErrorResponse:
+      type: object
+      required:
+        - success
+        - message
+        - errorCode
+        - timestamp
+        - path
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          description: Error description
+        errorCode:
+          type: string
+          description: Specific error code
+        timestamp:
+          type: string
+          format: date-time
+        path:
+          type: string
+          description: API endpoint path
+
+    # ============ AUTHENTICATION SCHEMAS ============
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 255
+          example: "farmer@example.com"
+        password:
+          type: string
+          minLength: 6
+          maxLength: 128
+          example: "securePassword123"
+        rememberMe:
+          type: boolean
+          default: false
+
+    LoginResponse:
+      type: object
+      required:
+        - accessToken
+        - refreshToken
+        - tokenType
+        - expiresIn
+        - userId
+        - email
+        - roles
+        - issuedAt
+      properties:
+        accessToken:
+          type: string
+          description: JWT access token
+        refreshToken:
+          type: string
+          description: JWT refresh token
+        tokenType:
+          type: string
+          example: "Bearer"
+        expiresIn:
+          type: integer
+          format: int64
+          description: Token expiry time in seconds
+        userId:
+          type: string
+          description: User identifier
+        email:
+          type: string
+          format: email
+        firstName:
+          type: string
+          nullable: true
+        lastName:
+          type: string
+          nullable: true
+        roles:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserRole'
+        issuedAt:
+          type: string
+          format: date-time
+
+    # ============ USER SCHEMAS ============
+    UserRole:
+      type: string
+      enum:
+        - PRODUCER
+        - BUYER
+        - ADMIN
+      description: User role in the system
+
+    UserStatus:
+      type: string
+      enum:
+        - ACTIVE
+        - INACTIVE
+        - SUSPENDED
+        - PENDING_VERIFICATION
+      description: User account status
+
+    KycStatus:
+      type: string
+      enum:
+        - NOT_STARTED
+        - SUBMITTED
+        - UNDER_REVIEW
+        - VERIFIED
+        - REJECTED
+      description: KYC verification status
+
+    DocumentType:
+      type: string
+      enum:
+        - IDENTITY_PROOF
+        - ADDRESS_PROOF
+        - GST_CERTIFICATE
+        - FARM_OWNERSHIP
+        - BUSINESS_LICENSE
+        - BANK_STATEMENT
+      description: Document type for uploads
+
+    ProducerRegistrationRequest:
+      type: object
+      required:
+        - email
+        - password
+        - firstName
+        - lastName
+        - phoneNumber
+        - farmName
+        - location
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        password:
+          type: string
+          minLength: 6
+          maxLength: 128
+        firstName:
+          type: string
+          maxLength: 100
+        lastName:
+          type: string
+          maxLength: 100
+        phoneNumber:
+          type: string
+          pattern: '^\\+?[1-9]\\d{1,14}$'
+        farmName:
+          type: string
+          maxLength: 200
+        location:
+          type: string
+          maxLength: 500
+        gstNumber:
+          type: string
+          pattern: '^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$'
+          nullable: true
+
+    BuyerRegistrationRequest:
+      type: object
+      required:
+        - email
+        - password
+        - firstName
+        - lastName
+        - phoneNumber
+        - businessName
+        - businessType
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        password:
+          type: string
+          minLength: 6
+          maxLength: 128
+        firstName:
+          type: string
+          maxLength: 100
+        lastName:
+          type: string
+          maxLength: 100
+        phoneNumber:
+          type: string
+          pattern: '^\\+?[1-9]\\d{1,14}$'
+        businessName:
+          type: string
+          maxLength: 200
+        businessType:
+          type: string
+          enum: [WHOLESALER, RETAILER, PROCESSOR, EXPORTER]
+        gstNumber:
+          type: string
+          pattern: '^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$'
+          nullable: true
+
+    OtpVerificationRequest:
+      type: object
+      required:
+        - identifier
+        - otp
+        - verificationType
+      properties:
+        identifier:
+          type: string
+          description: Phone number or email
+        otp:
+          type: string
+          minLength: 4
+          maxLength: 6
+          pattern: '^\\d{4,6}$'
+        verificationType:
+          type: string
+          enum: [PHONE, EMAIL]
+
+    UserProfile:
+      type: object
+      required:
+        - userId
+        - email
+        - firstName
+        - lastName
+        - phoneNumber
+        - role
+        - status
+        - kycStatus
+        - createdAt
+      properties:
+        userId:
+          type: string
+        email:
+          type: string
+          format: email
+        firstName:
+          type: string
+        lastName:
+          type: string
+        phoneNumber:
+          type: string
+        role:
+          $ref: '#/components/schemas/UserRole'
+        status:
+          $ref: '#/components/schemas/UserStatus'
+        kycStatus:
+          $ref: '#/components/schemas/KycStatus'
+        profileImage:
+          type: string
+          format: uri
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    UserUpdateRequest:
+      type: object
+      properties:
+        firstName:
+          type: string
+          maxLength: 100
+        lastName:
+          type: string
+          maxLength: 100
+        phoneNumber:
+          type: string
+          pattern: '^\\+?[1-9]\\d{1,14}$'
+        profileImage:
+          type: string
+          format: uri
+
+    KycSubmissionRequest:
+      type: object
+      required:
+        - documentType
+        - documentUrls
+      properties:
+        documentType:
+          $ref: '#/components/schemas/DocumentType'
+        documentUrls:
+          type: array
+          items:
+            type: string
+            format: uri
+          minItems: 1
+          maxItems: 5
+        additionalInfo:
+          type: object
+          description: Additional KYC information
+          additionalProperties:
+            type: string
+
+    # ============ PRODUCT SCHEMAS ============
+    QualityGrade:
+      type: string
+      enum:
+        - PREMIUM
+        - GRADE_A
+        - GRADE_B
+        - STANDARD
+      description: Product quality grade
+
+    ProductUnit:
+      type: string
+      enum:
+        - KG
+        - TONNE
+        - QUINTAL
+        - PIECE
+        - LITER
+      description: Product measurement unit
+
+    ProductStatus:
+      type: string
+      enum:
+        - ACTIVE
+        - INACTIVE
+        - OUT_OF_STOCK
+        - DISCONTINUED
+      description: Product availability status
+
+    Category:
+      type: object
+      required:
+        - categoryId
+        - name
+      properties:
+        categoryId:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        parentCategoryId:
+          type: string
+          nullable: true
+
+    Product:
+      type: object
+      required:
+        - productId
+        - producerId
+        - categoryId
+        - title
+        - description
+        - pricePerUnit
+        - quantity
+        - unit
+        - location
+        - qualityGrade
+        - status
+        - createdAt
+      properties:
+        productId:
+          type: string
+        producerId:
+          type: string
+        categoryId:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        pricePerUnit:
+          type: number
+          format: double
+          minimum: 0
+        quantity:
+          type: number
+          format: double
+          minimum: 0
+        unit:
+          $ref: '#/components/schemas/ProductUnit'
+        location:
+          type: string
+        qualityGrade:
+          $ref: '#/components/schemas/QualityGrade'
+        harvestDate:
+          type: string
+          format: date
+          nullable: true
+        expiryDate:
+          type: string
+          format: date
+          nullable: true
+        certifications:
+          type: array
+          items:
+            type: string
+        images:
+          type: array
+          items:
+            type: string
+            format: uri
+        status:
+          $ref: '#/components/schemas/ProductStatus'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ProductCreateRequest:
+      type: object
+      required:
+        - categoryId
+        - title
+        - description
+        - pricePerUnit
+        - quantity
+        - unit
+        - location
+        - qualityGrade
+      properties:
+        categoryId:
+          type: string
+        title:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 1000
+        pricePerUnit:
+          type: number
+          format: double
+          minimum: 0
+        quantity:
+          type: number
+          format: double
+          minimum: 0.01
+        unit:
+          $ref: '#/components/schemas/ProductUnit'
+        location:
+          type: string
+          maxLength: 500
+        qualityGrade:
+          $ref: '#/components/schemas/QualityGrade'
+        harvestDate:
+          type: string
+          format: date
+          nullable: true
+        expiryDate:
+          type: string
+          format: date
+          nullable: true
+        certifications:
+          type: array
+          items:
+            type: string
+
+    ProductUpdateRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 1000
+        pricePerUnit:
+          type: number
+          format: double
+          minimum: 0
+        quantity:
+          type: number
+          format: double
+          minimum: 0
+        location:
+          type: string
+          maxLength: 500
+        status:
+          $ref: '#/components/schemas/ProductStatus'
+
+    ProductPageResponse:
+      allOf:
+        - type: object
+          properties:
+            content:
+              type: array
+              items:
+                $ref: '#/components/schemas/Product'
+        - $ref: '#/components/schemas/PageInfo'
+
+    PageInfo:
+      type: object
+      required:
+        - page
+        - size
+        - totalElements
+        - totalPages
+        - first
+        - last
+      properties:
+        page:
+          type: integer
+          minimum: 0
+        size:
+          type: integer
+          minimum: 1
+        totalElements:
+          type: integer
+          format: int64
+          minimum: 0
+        totalPages:
+          type: integer
+          minimum: 0
+        first:
+          type: boolean
+        last:
+          type: boolean
+        sortBy:
+          type: string
+        sortDirection:
+          type: string
+          enum: [ASC, DESC]
+
+    # ============ QUOTE SCHEMAS ============
+    QuoteStatus:
+      type: string
+      enum:
+        - OPEN
+        - NEGOTIATION
+        - ACCEPTED
+        - REJECTED
+        - EXPIRED
+      description: Quote request/response status
+
+    QuoteRequest:
+      type: object
+      required:
+        - quoteRequestId
+        - buyerId
+        - productId
+        - requestedQuantity
+        - status
+        - createdAt
+      properties:
+        quoteRequestId:
+          type: string
+        buyerId:
+          type: string
+        productId:
+          type: string
+        requestedQuantity:
+          type: number
+          format: double
+          minimum: 0.01
+        maxPrice:
+          type: number
+          format: double
+          minimum: 0
+          nullable: true
+        deliveryLocation:
+          type: string
+          nullable: true
+        requiredByDate:
+          type: string
+          format: date
+          nullable: true
+        additionalRequirements:
+          type: string
+          maxLength: 1000
+          nullable: true
+        status:
+          $ref: '#/components/schemas/QuoteStatus'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+
+    QuoteRequestCreate:
+      type: object
+      required:
+        - productId
+        - requestedQuantity
+      properties:
+        productId:
+          type: string
+        requestedQuantity:
+          type: number
+          format: double
+          minimum: 0.01
+        maxPrice:
+          type: number
+          format: double
+          minimum: 0
+          nullable: true
+        deliveryLocation:
+          type: string
+          maxLength: 500
+          nullable: true
+        requiredByDate:
+          type: string
+          format: date
+          nullable: true
+        additionalRequirements:
+          type: string
+          maxLength: 1000
+          nullable: true
+
+    QuoteResponse:
+      type: object
+      required:
+        - quoteResponseId
+        - quoteRequestId
+        - producerId
+        - offeredPrice
+        - offeredQuantity
+        - status
+        - createdAt
+      properties:
+        quoteResponseId:
+          type: string
+        quoteRequestId:
+          type: string
+        producerId:
+          type: string
+        offeredPrice:
+          type: number
+          format: double
+          minimum: 0
+        offeredQuantity:
+          type: number
+          format: double
+          minimum: 0.01
+        deliveryTerms:
+          type: string
+          maxLength: 500
+          nullable: true
+        paymentTerms:
+          type: string
+          maxLength: 500
+          nullable: true
+        validUntil:
+          type: string
+          format: date-time
+          nullable: true
+        notes:
+          type: string
+          maxLength: 1000
+          nullable: true
+        status:
+          $ref: '#/components/schemas/QuoteStatus'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    QuoteResponseCreate:
+      type: object
+      required:
+        - quoteRequestId
+        - offeredPrice
+        - offeredQuantity
+      properties:
+        quoteRequestId:
+          type: string
+        offeredPrice:
+          type: number
+          format: double
+          minimum: 0
+        offeredQuantity:
+          type: number
+          format: double
+          minimum: 0.01
+        deliveryTerms:
+          type: string
+          maxLength: 500
+          nullable: true
+        paymentTerms:
+          type: string
+          maxLength: 500
+          nullable: true
+        validUntil:
+          type: string
+          format: date-time
+          nullable: true
+        notes:
+          type: string
+          maxLength: 1000
+          nullable: true
+
+    # ============ ORDER SCHEMAS ============
+    OrderStatus:
+      type: string
+      enum:
+        - PENDING
+        - CONFIRMED
+        - PROCESSING
+        - SHIPPED
+        - IN_TRANSIT
+        - DELIVERED
+        - COMPLETED
+        - CANCELLED
+        - REFUNDED
+      description: Order processing status
+
+    DeliveryStatus:
+      type: string
+      enum:
+        - NOT_STARTED
+        - PICKUP_SCHEDULED
+        - IN_TRANSIT
+        - OUT_FOR_DELIVERY
+        - DELIVERED
+        - FAILED_DELIVERY
+        - RETURNED
+      description: Delivery status
+
+    Order:
+      type: object
+      required:
+        - orderId
+        - buyerId
+        - producerId
+        - productId
+        - quoteResponseId
+        - quantity
+        - unitPrice
+        - totalPrice
+        - orderStatus
+        - deliveryStatus
+        - createdAt
+      properties:
+        orderId:
+          type: string
+        buyerId:
+          type: string
+        producerId:
+          type: string
+        productId:
+          type: string
+        quoteResponseId:
+          type: string
+        quantity:
+          type: number
+          format: double
+          minimum: 0.01
+        unitPrice:
+          type: number
+          format: double
+          minimum: 0
+        totalPrice:
+          type: number
+          format: double
+          minimum: 0
+        deliveryAddress:
+          type: string
+        deliveryDate:
+          type: string
+          format: date
+          nullable: true
+        orderStatus:
+          $ref: '#/components/schemas/OrderStatus'
+        deliveryStatus:
+          $ref: '#/components/schemas/DeliveryStatus'
+        orderNotes:
+          type: string
+          maxLength: 1000
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    OrderCreateRequest:
+      type: object
+      required:
+        - quoteResponseId
+        - deliveryAddress
+      properties:
+        quoteResponseId:
+          type: string
+        deliveryAddress:
+          type: string
+          maxLength: 1000
+        deliveryDate:
+          type: string
+          format: date
+          nullable: true
+        orderNotes:
+          type: string
+          maxLength: 1000
+          nullable: true
+
+    OrderStatusUpdate:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          $ref: '#/components/schemas/OrderStatus'
+        notes:
+          type: string
+          maxLength: 500
+          nullable: true
+
+    DeliveryUpdateRequest:
+      type: object
+      required:
+        - deliveryStatus
+      properties:
+        deliveryStatus:
+          $ref: '#/components/schemas/DeliveryStatus'
+        trackingNumber:
+          type: string
+          nullable: true
+        courierName:
+          type: string
+          nullable: true
+        estimatedDeliveryDate:
+          type: string
+          format: date-time
+          nullable: true
+        deliveryNotes:
+          type: string
+          maxLength: 500
+          nullable: true
+
+    OrderPageResponse:
+      allOf:
+        - type: object
+          properties:
+            content:
+              type: array
+              items:
+                $ref: '#/components/schemas/Order'
+        - $ref: '#/components/schemas/PageInfo'
+
+    # ============ PAYMENT SCHEMAS ============
+    EscrowStatus:
+      type: string
+      enum:
+        - CREATED
+        - FUNDED
+        - HELD
+        - RELEASED
+        - REFUNDED
+        - DISPUTED
+        - CANCELLED
+      description: Escrow account status
+
+    PaymentStatus:
+      type: string
+      enum:
+        - PENDING
+        - PROCESSING
+        - COMPLETED
+        - FAILED
+        - CANCELLED
+        - REFUNDED
+      description: Payment transaction status
+
+    PaymentMethod:
+      type: string
+      enum:
+        - BANK_TRANSFER
+        - UPI
+        - CREDIT_CARD
+        - DEBIT_CARD
+        - WALLET
+      description: Payment method used
+
+    EscrowAccount:
+      type: object
+      required:
+        - escrowId
+        - orderId
+        - amount
+        - currency
+        - escrowStatus
+        - createdAt
+      properties:
+        escrowId:
+          type: string
+        orderId:
+          type: string
+        amount:
+          type: number
+          format: double
+          minimum: 0
+        currency:
+          type: string
+          pattern: '^[A-Z]{3}$'
+          example: "INR"
+        escrowStatus:
+          $ref: '#/components/schemas/EscrowStatus'
+        releaseConditions:
+          type: string
+          maxLength: 1000
+          nullable: true
+        holdDurationDays:
+          type: integer
+          minimum: 1
+          maximum: 90
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    Payment:
+      type: object
+      required:
+        - paymentId
+        - orderId
+        - amount
+        - currency
+        - paymentMethod
+        - paymentStatus
+        - createdAt
+      properties:
+        paymentId:
+          type: string
+        orderId:
+          type: string
+        escrowId:
+          type: string
+          nullable: true
+        amount:
+          type: number
+          format: double
+          minimum: 0
+        currency:
+          type: string
+          pattern: '^[A-Z]{3}$'
+        paymentMethod:
+          $ref: '#/components/schemas/PaymentMethod'
+        paymentStatus:
+          $ref: '#/components/schemas/PaymentStatus'
+        transactionId:
+          type: string
+          nullable: true
+        paymentGatewayResponse:
+          type: object
+          nullable: true
+          additionalProperties: true
+        failureReason:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    EscrowCreateRequest:
+      type: object
+      required:
+        - orderId
+        - amount
+        - currency
+        - paymentMethod
+      properties:
+        orderId:
+          type: string
+        amount:
+          type: number
+          format: double
+          minimum: 0.01
+        currency:
+          type: string
+          pattern: '^[A-Z]{3}$'
+          example: "INR"
+        paymentMethod:
+          $ref: '#/components/schemas/PaymentMethod'
+        releaseConditions:
+          type: string
+          maxLength: 1000
+          nullable: true
+        holdDurationDays:
+          type: integer
+          minimum: 1
+          maximum: 90
+          default: 7
+
+  responses:
+    # ============ ERROR RESPONSES ============
+    BadRequestError:
+      description: Bad request - Invalid input parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            message: "Invalid request parameters"
+            errorCode: "VAL_002"
+            timestamp: "2025-11-15T10:30:00Z"
+            path: "/api/v1/products"
+
+    UnauthorizedError:
+      description: Unauthorized - Invalid or missing authentication
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            message: "Authentication required"
+            errorCode: "AUTH_003"
+            timestamp: "2025-11-15T10:30:00Z"
+            path: "/api/v1/orders"
+
+    ForbiddenError:
+      description: Forbidden - Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            message: "Insufficient permissions"
+            errorCode: "AUTH_004"
+            timestamp: "2025-11-15T10:30:00Z"
+            path: "/api/v1/products/123"
+
+    NotFoundError:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            message: "Resource not found"
+            errorCode: "USER_001"
+            timestamp: "2025-11-15T10:30:00Z"
+            path: "/api/v1/users/999"
+
+    ConflictError:
+      description: Conflict - Resource state conflict
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            message: "Resource already exists"
+            errorCode: "USER_002"
+            timestamp: "2025-11-15T10:30:00Z"
+            path: "/api/v1/register/producer"
+
+    ValidationError:
+      description: Validation error - Invalid input data
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ErrorResponse'
+              - type: object
+                properties:
+                  data:
+                    type: object
+                    additionalProperties:
+                      type: string
+          example:
+            success: false
+            message: "Validation failed"
+            errorCode: "VAL_001"
+            data:
+              email: "Invalid email format"
+              password: "Password must be at least 6 characters"
+            timestamp: "2025-11-15T10:30:00Z"
+            path: "/api/v1/register/buyer"
+
+tags:
+  - name: Authentication
+    description: User authentication and token management
+  - name: User Registration
+    description: Producer and buyer registration
+  - name: User Management
+    description: User profile and KYC management
+  - name: Product Management
+    description: Product catalog and inventory management
+  - name: Quote Management
+    description: RFQ and quote response management
+  - name: Order Management
+    description: Order processing and tracking
+  - name: Payment Management
+    description: Payment and escrow management

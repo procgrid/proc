@@ -1,0 +1,114 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+spring:
+  application:
+    name: procgrid-common
+  
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/procgrid_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    username: ${DB_USERNAME:procgrid_user}
+    password: ${DB_PASSWORD:procgrid_password}
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 2000
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: -1ms
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/procgrid}
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://localhost:8180/realms/procgrid/protocol/openid-connect/certs}
+
+  cloud:
+    openfeign:
+      client:
+        config:
+          default:
+            connect-timeout: 5000
+            read-timeout: 10000
+
+mybatis:
+  configuration:
+    map-underscore-to-camel-case: true
+    use-generated-keys: true
+    default-executor-type: reuse
+    default-statement-timeout: 30000
+    call-setters-on-nulls: true
+    return-instance-for-empty-row: true
+  mapper-locations: classpath*:mapper/**/*.xml
+  type-aliases-package: com.procgrid.*.model
+
+logging:
+  level:
+    com.procgrid: ${LOG_LEVEL:DEBUG}
+    org.springframework.security: ${SECURITY_LOG_LEVEL:INFO}
+    org.mybatis: ${MYBATIS_LOG_LEVEL:INFO}
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# Swagger/OpenAPI Configuration
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+
+# JWT Configuration
+jwt:
+  secret: ${JWT_SECRET:procgridSecretKeyThatIsAtLeast256BitsLongForHS256Algorithm}
+  expiration: ${JWT_EXPIRATION:86400000} # 24 hours
+
+# Keycloak Configuration
+keycloak:
+  realm: ${KEYCLOAK_REALM:procgrid}
+  auth-server-url: ${KEYCLOAK_AUTH_SERVER_URL:http://localhost:8180}
+  resource: ${KEYCLOAK_CLIENT_ID:procgrid-backend}
+  credentials:
+    secret: ${KEYCLOAK_CLIENT_SECRET:your-client-secret}
+  admin:
+    username: ${KEYCLOAK_ADMIN_USERNAME:admin}
+    password: ${KEYCLOAK_ADMIN_PASSWORD:admin}
+
+# Cache Configuration
+cache:
+  redis:
+    ttl:
+      default: 3600 # 1 hour
+      session: 86400 # 24 hours
+      product: 1800 # 30 minutes
+      quote: 900 # 15 minutes

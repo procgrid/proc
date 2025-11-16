@@ -1,0 +1,269 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.procgrid.userservice.mapper.mybatis.UserMyBatisMapper">
+
+    <!-- Result Map -->
+    <resultMap id="userResultMap" type="com.procgrid.userservice.model.User">
+        <id property="id" column="id"/>
+        <result property="email" column="email"/>
+        <result property="phone" column="phone"/>
+        <result property="role" column="role" typeHandler="org.apache.ibatis.type.EnumTypeHandler"/>
+        <result property="status" column="status" typeHandler="org.apache.ibatis.type.EnumTypeHandler"/>
+        <result property="firstName" column="first_name"/>
+        <result property="lastName" column="last_name"/>
+        <result property="profileImageUrl" column="profile_image_url"/>
+        <result property="bio" column="bio"/>
+        <result property="location" column="location"/>
+        <result property="gstNumber" column="gst_number"/>
+        <result property="emailVerified" column="email_verified"/>
+        <result property="phoneVerified" column="phone_verified"/>
+        <result property="emailVerifiedAt" column="email_verified_at"/>
+        <result property="phoneVerifiedAt" column="phone_verified_at"/>
+        <result property="lastLoginAt" column="last_login_at"/>
+        <result property="passwordChangedAt" column="password_changed_at"/>
+        <result property="passwordResetToken" column="password_reset_token"/>
+        <result property="passwordResetTokenExpiresAt" column="password_reset_token_expires_at"/>
+        <result property="emailVerificationToken" column="email_verification_token"/>
+        <result property="emailVerificationTokenExpiresAt" column="email_verification_token_expires_at"/>
+        <result property="keycloakUserId" column="keycloak_user_id"/>
+        <result property="preferredLanguage" column="preferred_language"/>
+        <result property="timezone" column="timezone"/>
+        <result property="createdBy" column="created_by"/>
+        <result property="updatedBy" column="updated_by"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <!-- Column List -->
+    <sql id="userColumns">
+        id, email, phone, role, status, first_name, last_name, profile_image_url, bio, location,
+        gst_number, email_verified, phone_verified, email_verified_at, phone_verified_at,
+        last_login_at, password_changed_at, password_reset_token, password_reset_token_expires_at,
+        email_verification_token, email_verification_token_expires_at, keycloak_user_id,
+        preferred_language, timezone, created_by, updated_by, created_at, updated_at
+    </sql>
+
+    <!-- Insert -->
+    <insert id="insert" parameterType="com.procgrid.userservice.model.User">
+        INSERT INTO users (
+            id, email, phone, role, status, first_name, last_name, profile_image_url, bio, location,
+            gst_number, email_verified, phone_verified, email_verified_at, phone_verified_at,
+            last_login_at, password_changed_at, password_reset_token, password_reset_token_expires_at,
+            email_verification_token, email_verification_token_expires_at, keycloak_user_id,
+            preferred_language, timezone, created_by, updated_by, created_at, updated_at
+        ) VALUES (
+            #{id}, #{email}, #{phone}, #{role}, #{status}, #{firstName}, #{lastName}, #{profileImageUrl}, 
+            #{bio}, #{location}, #{gstNumber}, #{emailVerified}, #{phoneVerified}, #{emailVerifiedAt}, 
+            #{phoneVerifiedAt}, #{lastLoginAt}, #{passwordChangedAt}, #{passwordResetToken}, 
+            #{passwordResetTokenExpiresAt}, #{emailVerificationToken}, #{emailVerificationTokenExpiresAt}, 
+            #{keycloakUserId}, #{preferredLanguage}, #{timezone}, #{createdBy}, #{updatedBy}, 
+            #{createdAt}, #{updatedAt}
+        )
+    </insert>
+
+    <!-- Update -->
+    <update id="update" parameterType="com.procgrid.userservice.model.User">
+        UPDATE users SET
+            email = #{email},
+            phone = #{phone},
+            role = #{role},
+            status = #{status},
+            first_name = #{firstName},
+            last_name = #{lastName},
+            profile_image_url = #{profileImageUrl},
+            bio = #{bio},
+            location = #{location},
+            gst_number = #{gstNumber},
+            email_verified = #{emailVerified},
+            phone_verified = #{phoneVerified},
+            email_verified_at = #{emailVerifiedAt},
+            phone_verified_at = #{phoneVerifiedAt},
+            last_login_at = #{lastLoginAt},
+            password_changed_at = #{passwordChangedAt},
+            password_reset_token = #{passwordResetToken},
+            password_reset_token_expires_at = #{passwordResetTokenExpiresAt},
+            email_verification_token = #{emailVerificationToken},
+            email_verification_token_expires_at = #{emailVerificationTokenExpiresAt},
+            keycloak_user_id = #{keycloakUserId},
+            preferred_language = #{preferredLanguage},
+            timezone = #{timezone},
+            updated_by = #{updatedBy},
+            updated_at = #{updatedAt}
+        WHERE id = #{id}
+    </update>
+
+    <!-- Find by ID -->
+    <select id="findById" parameterType="string" resultMap="userResultMap">
+        SELECT <include refid="userColumns"/>
+        FROM users
+        WHERE id = #{id}
+    </select>
+
+    <!-- Find by Email -->
+    <select id="findByEmail" parameterType="string" resultMap="userResultMap">
+        SELECT <include refid="userColumns"/>
+        FROM users
+        WHERE email = #{email}
+    </select>
+
+    <!-- Find by Phone -->
+    <select id="findByPhone" parameterType="string" resultMap="userResultMap">
+        SELECT <include refid="userColumns"/>
+        FROM users
+        WHERE phone = #{phone}
+    </select>
+
+    <!-- Find by Keycloak User ID -->
+    <select id="findByKeycloakUserId" parameterType="string" resultMap="userResultMap">
+        SELECT <include refid="userColumns"/>
+        FROM users
+        WHERE keycloak_user_id = #{keycloakUserId}
+    </select>
+
+    <!-- Find All with Pagination -->
+    <select id="findAll" resultMap="userResultMap">
+        SELECT <include refid="userColumns"/>
+        FROM users
+        ORDER BY created_at DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <!-- Find by Role -->
+    <select id="findByRole" resultMap="userResultMap">
+        SELECT <include refid="userColumns"/>
+        FROM users
+        WHERE role = #{role}
+        ORDER BY created_at DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <!-- Find by Status -->
+    <select id="findByStatus" resultMap="userResultMap">
+        SELECT <include refid="userColumns"/>
+        FROM users
+        WHERE status = #{status}
+        ORDER BY created_at DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <!-- Search Users -->
+    <select id="searchUsers" resultMap="userResultMap">
+        SELECT <include refid="userColumns"/>
+        FROM users
+        WHERE (first_name LIKE CONCAT('%', #{searchTerm}, '%')
+            OR last_name LIKE CONCAT('%', #{searchTerm}, '%')
+            OR email LIKE CONCAT('%', #{searchTerm}, '%')
+            OR CONCAT(first_name, ' ', last_name) LIKE CONCAT('%', #{searchTerm}, '%'))
+        ORDER BY created_at DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <!-- Count Total -->
+    <select id="count" resultType="long">
+        SELECT COUNT(*) FROM users
+    </select>
+
+    <!-- Count by Role -->
+    <select id="countByRole" resultType="long">
+        SELECT COUNT(*) FROM users WHERE role = #{role}
+    </select>
+
+    <!-- Count by Status -->
+    <select id="countByStatus" resultType="long">
+        SELECT COUNT(*) FROM users WHERE status = #{status}
+    </select>
+
+    <!-- Update Status -->
+    <update id="updateStatus">
+        UPDATE users SET 
+            status = #{status},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <!-- Update Email Verification -->
+    <update id="updateEmailVerification">
+        UPDATE users SET 
+            email_verified = #{emailVerified},
+            email_verified_at = #{emailVerifiedAt},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <!-- Update Phone Verification -->
+    <update id="updatePhoneVerification">
+        UPDATE users SET 
+            phone_verified = #{phoneVerified},
+            phone_verified_at = #{phoneVerifiedAt},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <!-- Update Last Login -->
+    <update id="updateLastLogin">
+        UPDATE users SET 
+            last_login_at = #{lastLoginAt},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <!-- Update Password Reset Token -->
+    <update id="updatePasswordResetToken">
+        UPDATE users SET 
+            password_reset_token = #{passwordResetToken},
+            password_reset_token_expires_at = #{expiresAt},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <!-- Update Email Verification Token -->
+    <update id="updateEmailVerificationToken">
+        UPDATE users SET 
+            email_verification_token = #{emailVerificationToken},
+            email_verification_token_expires_at = #{expiresAt},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <!-- Clear Password Reset Token -->
+    <update id="clearPasswordResetToken">
+        UPDATE users SET 
+            password_reset_token = NULL,
+            password_reset_token_expires_at = NULL,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <!-- Clear Email Verification Token -->
+    <update id="clearEmailVerificationToken">
+        UPDATE users SET 
+            email_verification_token = NULL,
+            email_verification_token_expires_at = NULL,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <!-- Check if Email Exists -->
+    <select id="existsByEmail" parameterType="string" resultType="boolean">
+        SELECT COUNT(*) > 0 FROM users WHERE email = #{email}
+    </select>
+
+    <!-- Check if Phone Exists -->
+    <select id="existsByPhone" parameterType="string" resultType="boolean">
+        SELECT COUNT(*) > 0 FROM users WHERE phone = #{phone}
+    </select>
+
+    <!-- Soft Delete -->
+    <update id="softDelete">
+        UPDATE users SET 
+            status = 'INACTIVE',
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <!-- Hard Delete -->
+    <delete id="delete" parameterType="string">
+        DELETE FROM users WHERE id = #{id}
+    </delete>
+
+</mapper>

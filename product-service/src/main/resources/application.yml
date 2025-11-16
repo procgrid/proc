@@ -1,0 +1,254 @@
+# Product Service Configuration
+server:
+  port: 8082
+  servlet:
+    context-path: /api/v1
+
+spring:
+  application:
+    name: product-service
+  
+  # Database Configuration
+  datasource:
+    url: jdbc:mysql://localhost:3306/procgrid_products?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    username: ${DB_USERNAME:procgrid_user}
+    password: ${DB_PASSWORD:procgrid_pass}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      pool-name: ProductServiceHikariCP
+      maximum-pool-size: 20
+      minimum-idle: 5
+      idle-timeout: 300000
+      max-lifetime: 1200000
+      connection-timeout: 20000
+
+  # MyBatis Configuration
+  mybatis:
+    mapper-locations: classpath:mapper/**/*.xml
+    type-aliases-package: com.procgrid.productservice.model
+    configuration:
+      map-underscore-to-camel-case: true
+      default-fetch-size: 100
+      default-statement-timeout: 30
+      cache-enabled: true
+      lazy-loading-enabled: true
+      aggressive-lazy-loading: false
+
+  # Redis Configuration
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      database: 2
+      timeout: 60000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: -1ms
+        shutdown-timeout: 100ms
+
+  # Cache Configuration
+  cache:
+    type: redis
+    redis:
+      time-to-live: 1800000 # 30 minutes for product data
+      cache-null-values: false
+
+  # Security & JWT Configuration
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://localhost:8080/realms/procgrid/protocol/openid_connect/certs}
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8080/realms/procgrid}
+
+  # Cloud Configuration
+  cloud:
+    discovery:
+      enabled: true
+    service-registry:
+      auto-registration:
+        enabled: true
+
+  # Kafka Configuration
+  kafka:
+    bootstrap-servers: ${KAFKA_BROKERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
+      properties:
+        enable.idempotence: true
+    consumer:
+      group-id: product-service
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+        auto.offset.reset: earliest
+
+# Eureka Client Configuration
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka/}
+  instance:
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 30
+
+# Management & Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  health:
+    redis:
+      enabled: true
+    db:
+      enabled: true
+
+# OpenAPI Documentation
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+  info:
+    title: ProcGrid Product Service API
+    description: Product catalog and inventory management service
+    version: 1.0.0
+    contact:
+      name: ProcGrid Team
+      email: support@procgrid.com
+
+# Logging Configuration
+logging:
+  level:
+    com.procgrid.productservice: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.web: INFO
+    org.mybatis: DEBUG
+    org.springframework.data.redis: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/product-service.log
+    max-size: 10MB
+    max-history: 7
+
+# Application Specific Configuration
+app:
+  security:
+    jwt:
+      public-key-location: classpath:jwt-public-key.pem
+    cors:
+      allowed-origins: 
+        - http://localhost:3000
+        - http://localhost:8080
+        - https://procgrid.com
+      allowed-methods: 
+        - GET
+        - POST
+        - PUT
+        - PATCH
+        - DELETE
+        - OPTIONS
+      allowed-headers: 
+        - "*"
+      allow-credentials: true
+
+  business:
+    products:
+      max-images-per-product: 10
+      max-image-size: 5MB
+      allowed-image-types: 
+        - jpg
+        - jpeg
+        - png
+        - webp
+      auto-expire-days: 90
+      default-page-size: 20
+      max-page-size: 100
+    
+    search:
+      enable-full-text-search: true
+      enable-fuzzy-search: true
+      search-cache-duration: 300 # 5 minutes
+      trending-cache-duration: 3600 # 1 hour
+
+  storage:
+    type: LOCAL # LOCAL, S3, AZURE_BLOB
+    local:
+      upload-dir: uploads/product-images
+      base-url: http://localhost:8082/images
+    s3:
+      bucket-name: procgrid-product-images
+      region: ap-south-1
+      access-key: ${AWS_ACCESS_KEY:}
+      secret-key: ${AWS_SECRET_KEY:}
+      cloudfront-url: ${CLOUDFRONT_URL:}
+
+  elasticsearch:
+    enabled: false
+    host: ${ELASTICSEARCH_HOST:localhost}
+    port: ${ELASTICSEARCH_PORT:9200}
+    username: ${ELASTICSEARCH_USERNAME:}
+    password: ${ELASTICSEARCH_PASSWORD:}
+    index:
+      products: procgrid-products
+      suggestions: procgrid-suggestions
+
+
+
+# Resilience4j Configuration
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        slidingWindowSize: 100
+        permittedNumberOfCallsInHalfOpenState: 10
+        waitDurationInOpenState: 10s
+        failureRateThreshold: 60
+        eventConsumerBufferSize: 10
+    instances:
+      productService:
+        baseConfig: default
+      searchService:
+        baseConfig: default
+      
+  retry:
+    configs:
+      default:
+        maxAttempts: 3
+        waitDuration: 1s
+        enableExponentialBackoff: true
+        exponentialBackoffMultiplier: 2
+    instances:
+      productService:
+        baseConfig: default
+
+  timelimiter:
+    configs:
+      default:
+        timeoutDuration: 10s
+    instances:
+      productService:
+        baseConfig: default
+
+# Monitoring and Metrics
+metrics:
+  product:
+    views-tracking: true
+    search-analytics: true
+    performance-monitoring: true

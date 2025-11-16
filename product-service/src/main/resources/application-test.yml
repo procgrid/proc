@@ -1,0 +1,109 @@
+# Simple test configuration for Product Service
+server:
+  port: 8082
+
+spring:
+  application:
+    name: product-service
+  
+  # Completely disable Spring Cloud for testing
+  cloud:
+    config:
+      enabled: false
+      import-check:
+        enabled: false
+    discovery:
+      enabled: false
+    loadbalancer:
+      enabled: false
+    
+  # Use optional configserver to prevent startup errors
+  config:
+    import: "optional:configserver:"
+    
+  main:
+    allow-bean-definition-overriding: true
+    banner-mode: "off"
+  
+  # Database Configuration - H2 for testing
+  datasource:
+    url: jdbc:h2:mem:testdb;MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password: ""
+    driver-class-name: org.h2.Driver
+    hikari:
+      auto-commit: false
+  
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  
+  # JPA Configuration for testing
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.H2Dialect
+        enable_lazy_load_no_trans: true
+
+  # MyBatis Configuration
+  mybatis:
+    type-aliases-package: com.procgrid.productservice.model
+    configuration:
+      map-underscore-to-camel-case: true
+
+# Completely disable Eureka for testing
+eureka:
+  client:
+    enabled: false
+    register-with-eureka: false
+    fetch-registry: false
+
+# Disable security for testing
+management:
+  security:
+    enabled: false
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+
+# OpenAPI Documentation
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+
+# Logging
+logging:
+  level:
+    com.procgrid.productservice: INFO
+    org.springframework.web: INFO
+    org.mybatis: DEBUG
+    org.springframework.cloud: ERROR
+    org.springframework.security: ERROR
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+
+# Application specific configuration
+app:
+  security:
+    cors:
+      allowed-origins: "http://localhost:3000,http://localhost:8080"
+      allowed-methods: "GET,POST,PUT,DELETE,OPTIONS"
+      allowed-headers: "*"
+      allow-credentials: true
+  
+  jwt:
+    secret: "test-secret-key-for-jwt-tokens-in-test-environment"
+    expiration: 86400
