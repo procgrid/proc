@@ -1,9 +1,7 @@
 package com.procgrid.common.model;
 
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
+import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 import java.time.LocalDateTime;
 
@@ -11,12 +9,13 @@ import java.time.LocalDateTime;
  * Base entity class with common audit fields
  */
 @Data
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(of = "id")
 public abstract class BaseEntity {
     
-    private Long id;
+    private String id;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private String createdBy;

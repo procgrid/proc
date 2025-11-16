@@ -2,11 +2,13 @@ package com.procgrid.userservice.service;
 
 import com.procgrid.userservice.dto.request.ProducerRegistrationRequest;
 import com.procgrid.userservice.dto.response.ProducerResponse;
+import com.procgrid.userservice.dto.response.UserResponse;
 import com.procgrid.userservice.mapper.UserMapper;
 import com.procgrid.userservice.model.User;
 import com.procgrid.userservice.model.Producer;
 import com.procgrid.userservice.repository.UserRepository;
 import com.procgrid.userservice.repository.ProducerRepository;
+import com.procgrid.userservice.repository.BuyerRepository;
 import com.procgrid.common.exception.BusinessException;
 import com.procgrid.common.model.ApiResponse;
 

@@ -144,6 +144,11 @@ public interface UserMyBatisMapper {
     boolean existsByPhone(@Param("phone") String phone);
     
     /**
+     * Find user by email verification token
+     */
+    Optional<User> findByEmailVerificationToken(@Param("token") String token);
+    
+    /**
      * Soft delete user (update status to inactive)
      */
     int softDelete(@Param("id") String id);

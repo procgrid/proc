@@ -92,6 +92,7 @@ public interface UserMapper {
     /**
      * Maps User and Producer entities to combined ProducerResponse
      */
+    @Mapping(target = "id", source = "producer.id")
     @Mapping(target = "userId", source = "producer.userId")
     @Mapping(target = "email", source = "user.email")
     @Mapping(target = "firstName", source = "user.firstName")
@@ -112,6 +113,7 @@ public interface UserMapper {
     /**
      * Maps User and Buyer entities to combined BuyerResponse
      */
+    @Mapping(target = "id", source = "buyer.id")
     @Mapping(target = "userId", source = "buyer.userId")
     @Mapping(target = "email", source = "user.email")
     @Mapping(target = "firstName", source = "user.firstName")

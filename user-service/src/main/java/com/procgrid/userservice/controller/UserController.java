@@ -10,6 +10,8 @@ import com.procgrid.userservice.dto.response.UserStatsResponse;
 import com.procgrid.userservice.model.User;
 import com.procgrid.userservice.service.UserService;
 import com.procgrid.common.model.ApiResponse;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -19,8 +21,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -103,7 +103,7 @@ public class UserController {
         log.debug("Getting current user profile");
         
         UserResponse response = userService.getCurrentUserProfile();
-        return ResponseEntity.ok(ApiResponse.success(response, "User profile retrieved successfully"));
+        return ResponseEntity.ok(ApiResponse.success("User profile retrieved successfully", response));
     }
     
     /**
@@ -122,7 +122,7 @@ public class UserController {
         log.debug("Getting user by ID: {}", id);
         
         UserResponse response = userService.getUserById(id);
-        return ResponseEntity.ok(ApiResponse.success(response, "User retrieved successfully"));
+        return ResponseEntity.ok(ApiResponse.success("User retrieved successfully", response));
     }
     
     /**
@@ -142,7 +142,7 @@ public class UserController {
         log.info("Updating user profile: {}", id);
         
         UserResponse response = userService.updateUserProfile(id, request);
-        return ResponseEntity.ok(ApiResponse.success(response, "User profile updated successfully"));
+        return ResponseEntity.ok(ApiResponse.success("User profile updated successfully", response));
     }
     
     /**
@@ -205,7 +205,7 @@ public class UserController {
         Pageable pageable = PageRequest.of(page, size, Sort.by(sortDirection, sort));
         
         Page<UserResponse> response = userService.getUsers(pageable);
-        return ResponseEntity.ok(ApiResponse.success(response, "Users retrieved successfully"));
+        return ResponseEntity.ok(ApiResponse.success("Users retrieved successfully", response));
     }
     
     /**
@@ -228,7 +228,7 @@ public class UserController {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         
         Page<UserResponse> response = userService.searchUsers(q, pageable);
-        return ResponseEntity.ok(ApiResponse.success(response, "Search completed successfully"));
+        return ResponseEntity.ok(ApiResponse.success("Search completed successfully", response));
     }
     
     /**
@@ -249,7 +249,7 @@ public class UserController {
         log.info("Updating user status: {} to {}, reason: {}", id, status, reason);
         
         UserResponse response = userService.updateUserStatus(id, status, reason);
-        return ResponseEntity.ok(ApiResponse.success(response, "User status updated successfully"));
+        return ResponseEntity.ok(ApiResponse.success("User status updated successfully", response));
     }
     
     /**
@@ -267,7 +267,7 @@ public class UserController {
         log.debug("Getting user statistics");
         
         UserStatsResponse response = userService.getUserStatistics();
-        return ResponseEntity.ok(ApiResponse.success(response, "User statistics retrieved successfully"));
+        return ResponseEntity.ok(ApiResponse.success("User statistics retrieved successfully", response));
     }
     
     /**
@@ -290,7 +290,7 @@ public class UserController {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         
         Page<UserResponse> response = userService.getUsersByRole(role, pageable);
-        return ResponseEntity.ok(ApiResponse.success(response, "Users retrieved successfully"));
+        return ResponseEntity.ok(ApiResponse.success("Users retrieved successfully", response));
     }
     
     /**
@@ -313,6 +313,6 @@ public class UserController {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         
         Page<UserResponse> response = userService.getUsersByStatus(status, pageable);
-        return ResponseEntity.ok(ApiResponse.success(response, "Users retrieved successfully"));
+        return ResponseEntity.ok(ApiResponse.success("Users retrieved successfully", response));
     }
 }

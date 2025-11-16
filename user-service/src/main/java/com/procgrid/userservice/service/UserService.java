@@ -59,12 +59,12 @@ public class UserService {
         try {
             // Validate email uniqueness
             if (userRepository.existsByEmail(request.getEmail())) {
-                throw new BusinessException("User with this email already exists");
+                throw new BusinessException("User with this email already exists", "EMAIL_ALREADY_EXISTS");
             }
             
             // Validate phone uniqueness (if provided)
             if (request.getPhone() != null && userRepository.existsByPhone(request.getPhone())) {
-                throw new BusinessException("User with this phone number already exists");
+                throw new BusinessException("User with this phone number already exists", "PHONE_ALREADY_EXISTS");
             }
             
             // Create user entity
@@ -103,14 +103,14 @@ public class UserService {
             ProducerResponse response = userMapper.toCombinedProducerResponse(savedUser, savedProducer);
             
             log.info("Successfully registered producer: {}", savedUser.getId());
-            return ApiResponse.success(response, "Producer registered successfully. Please verify your email.");
+            return ApiResponse.success("Producer registered successfully. Please verify your email.", response);
             
         } catch (BusinessException e) {
             log.error("Business error during producer registration: {}", e.getMessage());
             throw e;
         } catch (Exception e) {
             log.error("Error registering producer: ", e);
-            throw new BusinessException("Failed to register producer: " + e.getMessage());
+            throw new BusinessException("Failed to register producer: " + e.getMessage(), "REGISTRATION_FAILED");
         }
     }
     
@@ -123,12 +123,12 @@ public class UserService {
         try {
             // Validate email uniqueness
             if (userRepository.existsByEmail(request.getEmail())) {
-                throw new BusinessException("User with this email already exists");
+                throw new BusinessException("User with this email already exists", "EMAIL_ALREADY_EXISTS");
             }
             
             // Validate phone uniqueness (if provided)
             if (request.getPhone() != null && userRepository.existsByPhone(request.getPhone())) {
-                throw new BusinessException("User with this phone number already exists");
+                throw new BusinessException("User with this phone number already exists", "PHONE_ALREADY_EXISTS");
             }
             
             // Create user entity
@@ -167,14 +167,14 @@ public class UserService {
             BuyerResponse response = userMapper.toCombinedBuyerResponse(savedUser, savedBuyer);
             
             log.info("Successfully registered buyer: {}", savedUser.getId());
-            return ApiResponse.success(response, "Buyer registered successfully. Please verify your email.");
+            return ApiResponse.success("Buyer registered successfully. Please verify your email.", response);
             
         } catch (BusinessException e) {
             log.error("Business error during buyer registration: {}", e.getMessage());
             throw e;
         } catch (Exception e) {
             log.error("Error registering buyer: ", e);
-            throw new BusinessException("Failed to register buyer: " + e.getMessage());
+            throw new BusinessException("Failed to register buyer: " + e.getMessage(), "REGISTRATION_FAILED");
         }
     }
     
@@ -266,7 +266,7 @@ public class UserService {
         // Find user by verification token
         Optional<User> userOpt = userRepository.findByEmailVerificationToken(token);
         if (userOpt.isEmpty()) {
-            throw new BusinessException("Invalid or expired verification token");
+            throw new BusinessException("Invalid or expired verification token", "INVALID_TOKEN");
         }
         
         User user = userOpt.get();
@@ -274,7 +274,7 @@ public class UserService {
         // Check if token is expired
         if (user.getEmailVerificationTokenExpiresAt() != null && 
             user.getEmailVerificationTokenExpiresAt().isBefore(LocalDateTime.now())) {
-            throw new BusinessException("Verification token has expired");
+            throw new BusinessException("Verification token has expired", "TOKEN_EXPIRED");
         }
         
         // Mark email as verified
@@ -366,7 +366,7 @@ public class UserService {
         
         boolean updated = userRepository.updateStatus(id, status);
         if (!updated) {
-            throw new BusinessException("Failed to update user status");
+            throw new BusinessException("Failed to update user status", "UPDATE_FAILED");
         }
         
         // Audit log the status change
@@ -456,19 +456,19 @@ public class UserService {
         if (authentication != null && authentication.isAuthenticated()) {
             return authentication.getName(); // Assuming this returns user ID
         }
-        throw new BusinessException("User not authenticated");
+        throw new BusinessException("User not authenticated", "NOT_AUTHENTICATED");
     }
     
     private void validateUserAccess(String userId) {
         String currentUserId = getCurrentUserId();
         if (!currentUserId.equals(userId) && !isAdmin()) {
-            throw new BusinessException("Access denied: Cannot access this user's data");
+            throw new BusinessException("Access denied: Cannot access this user's data", "ACCESS_DENIED");
         }
     }
     
     private void validateAdminAccess() {
         if (!isAdmin()) {
-            throw new BusinessException("Access denied: Admin role required");
+            throw new BusinessException("Access denied: Admin role required", "ADMIN_REQUIRED");
         }
     }
     
